@@ -169,6 +169,7 @@ function home(){
   if(P.mocks.length){
     html+=`<div class="card"><b>模擬考紀錄</b><ul class="list">`+P.mocks.slice(-6).reverse().map(m=>{const dt=new Date(m.t);return `<li>${dt.getMonth()+1}/${dt.getDate()} ${m.kind}：${m.parts.map(x=>`${x.s} ${x.score}分`).join('、')}　<b class="${m.pass?'pass':'fail'}">${m.pass?'及格':'未過'}</b></li>`}).join('')+`</ul></div>`;
   }
+  html+=`<div class="card"><b>搬移進度</b><p class="mute" style="margin:4px 0 10px">換手機、換瀏覽器時，在舊的那邊複製進度碼，到新的那邊貼上，作答紀錄、錯題本和模擬考成績都會合併過去。</p><div class="grid2"><button class="btn sub" data-act="export">複製我的進度碼</button><button class="btn sub" data-act="import">貼上進度碼匯入</button></div></div>`;
   html+=`<p class="mute">及格標準：兩科合計 140 分以上，而且每科都不能低於 60 分。法規 50 題（每題 2 分、60 分鐘），實務 80 題（每題 1.25 分、90 分鐘）。題目來自第 50–59 期歷屆試題；說明為重新撰寫，法規以當期試題答案為準，若有修法請以最新法規為準。</p>`;
   app.innerHTML=html;window.scrollTo(0,0);
 }
@@ -254,6 +255,36 @@ function restoreKept(){
   document.querySelectorAll('.opt').forEach(b=>{const k=b.dataset.opt;b.disabled=true;if(q.a.includes(k))b.classList.add('ok');else if(k===letter)b.classList.add('ng')});
   $('#after').innerHTML=explainHtml(q,q.a.includes(letter));
 }
+function encodeP(){return 'TQ1.'+btoa(unescape(encodeURIComponent(JSON.stringify(P))))}
+function decodeP(t){t=(t||'').trim().replace(/\s+/g,'');if(!t.startsWith('TQ1.'))throw new Error('x');const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));if(!o||typeof o.r!=='object')throw new Error('x');return Object.assign({r:{},w:[],mocks:[],pos:{}},o)}
+function exportView(){
+  view={name:'export'};const code=encodeP();const n=Object.keys(P.r).length;
+  app.innerHTML=`<button class="back" data-act="home">‹ 回首頁</button>
+  <div class="card intro"><h2>我的進度碼</h2><p>目前有 ${n} 題的作答紀錄、${P.w.length} 題錯題、${P.mocks.length} 次模擬考。把下面整段複製起來，到另一台裝置的「貼上進度碼匯入」貼上。</p>
+  <textarea id="code" readonly style="width:100%;min-height:140px;font:13px/1.4 monospace;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);word-break:break-all">${code}</textarea></div>
+  <button class="btn wide" data-act="copycode">複製進度碼</button>`;
+  window.scrollTo(0,0);
+}
+function importView(){
+  view={name:'import'};
+  app.innerHTML=`<button class="back" data-act="home">‹ 回首頁</button>
+  <div class="card intro"><h2>貼上進度碼</h2><p>貼上從另一台裝置複製的進度碼。會跟這台的進度合併，不會把這台的紀錄蓋掉。</p>
+  <textarea id="code" placeholder="TQ1. 開頭的一長串文字" style="width:100%;min-height:140px;font:16px/1.4 monospace;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);word-break:break-all"></textarea>
+  <div id="imsg" class="mute" style="margin-top:6px"></div></div>
+  <button class="btn wide" data-act="doimport">匯入並合併</button>`;
+  window.scrollTo(0,0);
+}
+async function copyCode(){
+  const ta=$('#code');
+  try{await navigator.clipboard.writeText(ta.value);toast('已複製進度碼')}
+  catch(e){ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);let ok=false;try{ok=document.execCommand('copy')}catch(x){}toast(ok?'已複製進度碼':'已幫你選取，請長按或按右鍵複製')}
+}
+function doImport(){
+  const t=$('#code').value;
+  try{const o=decodeP(t);const before=Object.keys(P.r).length;P=merge(P,o);save();const after=Object.keys(P.r).length;
+    app.innerHTML=`<div class="card res"><p class="stem">匯入完成</p><p>作答紀錄 ${before} → ${after} 題，錯題本 ${P.w.length} 題</p></div><button class="btn wide" data-act="home">回首頁</button>`}
+  catch(e){$('#imsg').innerHTML='<span class="fail">這段不是有效的進度碼，請確認整段都有複製到（要是 TQ1. 開頭）。</span>'}
+}
 function groupOf(id){for(const d of DATA.days)for(const g of d.groups)if(g.q.includes(id))return g;return null}
 function renderWConcept(){const id=view.list[view.i],g=groupOf(id);
   app.innerHTML=`<div class="qhead"><button class="back" data-act="home">‹ 回首頁</button><span>錯題 ${view.i+1} / ${view.list.length}</span></div>
@@ -336,6 +367,10 @@ app.addEventListener('click',e=>{
   else if(a==='wconcept'){view.keep=view.ans;renderWConcept()}
   else if(a==='wback'){renderWrong();restoreKept()}
   else if(a==='next')next();
+  else if(a==='export')exportView();
+  else if(a==='import')importView();
+  else if(a==='copycode')copyCode();
+  else if(a==='doimport')doImport();
   else if(a==='prev'){if(view.i>0){view.i--;view.shownIntro.add(view.seq[view.i].gi);renderStudy()}}
   else if(a==='wrong')startWrong();
   else if(a==='mockmenu')mockMenu();
