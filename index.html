@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>信託業務讀書機</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%236B4226%22/%3E%3Crect x=%2216%22 y=%2214%22 width=%2232%22 height=%2236%22 rx=%224%22 fill=%22%23F2A7B5%22/%3E%3Crect x=%2222%22 y=%2222%22 width=%2220%22 height=%224%22 fill=%22%23E8833A%22/%3E%3C/svg%3E">
+<style>
+/* VOICE: 安靜、專注的刷題工具，像一本有色標籤的錯題本
+   IDEA: 七天的讀書計畫表，每天一張卡片，一題一畫面
+   PICTURE: 首頁的七天進度條就是主圖；做題時題目本身就是畫面
+   COLOUR and TYPE: 咖啡 #6B4226 為主，橘 #E8833A 輔助，粉 #F2A7B5/#E06C8C 點綴；對錯用柔和綠與玫瑰紅；Noto Sans TC
+   LAYOUT: 單欄、最寬 720px，手機優先，大按鈕 */
+:root{color-scheme:light dark;
+--bg:light-dark(#fbf5ef,#1e1611);--card:light-dark(#ffffff,#2a1f18);--ink:light-dark(#3b2416,#f5e9df);--mute:light-dark(#8a6a55,#c4a892);
+--teal:#6B4226;--teal2:light-dark(#8a5530,#e0a77a);--sky:#E8833A;--blue:#E8833A;--pur:#E06C8C;--ok:light-dark(#4e8f5a,#8fcf9a);--okbg:light-dark(#eaf5e8,#1f3322);--ng:light-dark(#c8475e,#f28fa5);--ngbg:light-dark(#fde8ee,#3d1f27);--line:light-dark(#f0dccd,#45342a);--org:#E8833A;--pink:#F2A7B5}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;overflow-x:clip}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.top{background:linear-gradient(120deg,#6B4226 0%,#a0552c 55%,#E8833A 100%);color:#fff;padding:18px max(4vw,16px) 16px;border-bottom:6px solid var(--pink)}
+.top h1{margin:0;font-size:24px;line-height:1.2}
+.top p{margin:4px 0 0;opacity:.9;font-size:14px}
+.wrap{max-width:720px;margin:0 auto;padding:16px max(4vw,14px) 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:12px;padding:12px 16px;min-height:48px;background:var(--teal);color:#fff;font-weight:600}
+.btn.sub{background:transparent;border:1.5px solid var(--teal);color:var(--teal2)}
+.btn.pur{background:var(--pur)}
+.btn.wide{width:100%}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.day{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.day.today{border:2px solid var(--org);box-shadow:0 3px 0 var(--pink)}
+.day b{font-size:18px}
+.day .nm{color:var(--mute);font-size:14px;margin:2px 0 8px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--pur);color:#fff;margin-left:6px;vertical-align:2px}
+.tag.soon{background:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}
+.bar .o{background:var(--ok)}.bar .n{background:var(--ng)}
+.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-top:6px}
+.big{font-size:32px;font-weight:700;line-height:1.1}
+.mute{color:var(--mute);font-size:14px}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--mute);margin-bottom:10px}
+.back{border:0;background:none;color:var(--teal2);font-weight:600;padding:8px 0;min-height:44px}
+.cbtn{display:flex;align-items:center;gap:6px;width:100%;text-align:left;border:1.5px dashed var(--org);background:transparent;color:var(--teal2);border-radius:12px;padding:10px 14px;min-height:44px;font-weight:600;margin-bottom:10px}
+.gt{font-size:13px;color:var(--teal2);font-weight:600;margin-bottom:6px}
+.stem{font-size:18px;font-weight:600;margin:0 0 14px}
+.opt{display:flex;gap:10px;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:10px;min-height:52px;align-items:flex-start}
+.opt .k{flex:none;width:28px;height:28px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:700;font-size:14px}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.ok .k{background:var(--ok);color:#fff}
+.opt.ng{border-color:var(--ng);background:var(--ngbg)}.opt.ng .k{background:var(--ng);color:#fff}
+.opt:disabled{cursor:default;color:inherit;opacity:1}
+.exp{border-radius:12px;padding:12px 14px;margin:6px 0 14px;font-size:16px}
+.exp.ok{background:var(--okbg)}.exp.ng{background:var(--ngbg)}
+.exp b{display:block;margin-bottom:2px}
+.intro{border-left:5px solid var(--org);}
+.intro h2{margin:0 0 8px;font-size:22px;line-height:1.3}
+.intro p{margin:0 0 14px;font-size:17px}
+.src{font-size:12px;color:var(--mute)}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;color:var(--teal2)}
+.res{text-align:center}
+.res .big{font-size:44px}
+.pass{color:var(--ok)}.fail{color:var(--ng)}
+.list{margin:0;padding:0;list-style:none}
+.list li{border-top:1px solid var(--line);padding:10px 0;font-size:15px}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.on{opacity:.92}
+.sync{font-size:12px;opacity:.85}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.dots i{width:10px;height:10px;border-radius:3px;background:var(--line)}
+.dots i.o{background:var(--ok)}.dots i.n{background:var(--ng)}.dots i.c{outline:2px solid var(--teal)}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="top"><h1>信託業務讀書機</h1><p>信託業業務人員信託業務專業測驗・7 天讀完 <span class="sync" id="sync"></span><br><span style="font-size:12px;opacity:.85">進度只存在你這台裝置的瀏覽器</span></p></div>
+<div class="wrap" id="app"><div class="card">載入題庫中…</div></div>
+<div class="toast" id="toast"></div>
+<script>
+{
+const $ = s => document.querySelector(s);
+const app = $('#app');
+let START=(()=>{try{const v=localStorage.getItem('trust-start');if(v){const[y,m,d]=v.split('-').map(Number);return new Date(y,m-1,d)}}catch(e){}const t=new Date();t.setHours(0,0,0,0);try{localStorage.setItem('trust-start',`${t.getFullYear()}-${t.getMonth()+1}-${t.getDate()}`)}catch(e){}return t})();
+const KEY = 'trust-quiz-v1';
+let DATA = null, Q = {}, P = {r: {}, w: [], mocks: [], pos: {}}, view = {};
+let db = null, uid = null, saveTimer = null, saving = false, dirty = false;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1600)}
+function todayN(){const d=Math.floor((new Date().setHours(0,0,0,0)-START)/864e5)+1;return d}
+
+/* ---------- 儲存 ---------- */
+function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)P=Object.assign(P,JSON.parse(s))}catch(e){}}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}
+  dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(flush,1500);
+}
+async function flush(){
+  if(!db||!uid||saving||!dirty)return;
+  saving=true;dirty=false;
+  try{await db.doc('data/users/'+uid+'/progress').set({p:JSON.stringify(P),t:Date.now()});$('#sync').textContent='・已同步到帳號'}
+  catch(e){$('#sync').textContent='・暫存在這台裝置'}
+  saving=false;if(dirty)flush();
+}
+function merge(a,b){ // 合併兩份進度，取作答次數較多者
+  const r=Object.assign({},a.r);
+  for(const k in b.r){const x=r[k],y=b.r[k];if(!x||(y.c+y.n)>(x.c+x.n))r[k]=y}
+  const w=[...new Set([...(a.w||[]),...(b.w||[])])].filter(k=>r[k]&&r[k].l===0);
+  const seen=new Set(),mocks=[];for(const m of [...(a.mocks||[]),...(b.mocks||[])]){if(!seen.has(m.t)){seen.add(m.t);mocks.push(m)}}
+  mocks.sort((x,y)=>x.t-y.t);
+  return {r,w,mocks,pos:Object.assign({},b.pos,a.pos)};
+}
+async function initDb(){
+  try{
+    if(!window.claude||!claude.use)return;
+    const [d,u]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(!d||!u)return;
+    const id=await u.id();if(!id)return;
+    db=d;uid=id;
+    const snap=await db.doc('data/users/'+uid+'/progress').get();
+    if(snap.exists){try{P=merge(P,JSON.parse(snap.data().p));try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}}catch(e){}}
+    $('#sync').textContent='・已同步到帳號';
+    if(view.name==='home')home();
+    dirty=true;flush();
+  }catch(e){$('#sync').textContent='・暫存在這台裝置'}
+}
+
+/* ---------- 作答紀錄 ---------- */
+function record(id,ok){
+  const r=P.r[id]||{c:0,n:0,l:null};
+  if(ok)r.c++;else r.n++;r.l=ok?1:0;P.r[id]=r;
+  const i=P.w.indexOf(id);
+  if(!ok&&i<0)P.w.push(id);
+  if(ok&&i>=0)P.w.splice(i,1);
+  save();
+}
+function dayStats(day){
+  const ids=day.groups.flatMap(g=>g.q);let o=0,n=0;
+  for(const id of ids){const r=P.r[id];if(r&&r.l!==null){r.l?o++:n++}}
+  return {t:ids.length,o,n};
+}
+function srcText(q){return `第 ${q.p} 期・${q.s}・第 ${+q.id.slice(3)} 題`}
+
+/* ---------- 首頁 ---------- */
+function home(){
+  view={name:'home'};
+  const tn=todayN();
+  let html='';
+  const all=Object.keys(Q).length;let done=0,ok=0;for(const k in P.r){if(P.r[k].l!==null){done++;if(P.r[k].l)ok++}}
+  html+=`<div class="card"><div class="row" style="justify-content:space-between"><div><div class="mute">總進度</div><div class="big">${done}<span class="mute" style="font-size:16px"> / ${all} 題</span></div></div>
+  <div style="text-align:right"><div class="mute">答對率</div><div class="big">${done?Math.round(ok/done*100):0}<span class="mute" style="font-size:16px">%</span></div></div></div>
+  <div class="bar" style="margin-top:12px"><i class="o" style="width:${ok/all*100}%"></i><i class="n" style="width:${(done-ok)/all*100}%"></i></div></div>`;
+  const sv=`${START.getFullYear()}-${String(START.getMonth()+1).padStart(2,'0')}-${String(START.getDate()).padStart(2,'0')}`;
+  html+=`<div class="card row" style="justify-content:space-between"><label for="startd" class="mute">第 1 天從哪天開始</label><input type="date" id="startd" value="${sv}" style="font:inherit;font-size:16px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-height:44px"></div>`;
+  html+=`<div class="grid2" style="margin-bottom:12px"><button class="btn pur" data-act="wrong">錯題本（${P.w.length}）</button><button class="btn" data-act="mockmenu">模擬考</button></div>`;
+  DATA.days.forEach(d=>{
+    const s=dayStats(d);const isT=d.n===tn;
+    const date=new Date(START.getTime()+(d.n-1)*864e5);
+    html+=`<button class="day${isT?' today':''}" data-day="${d.n}"><b>第 ${d.n} 天</b> <span class="mute">${date.getMonth()+1}/${date.getDate()}</span>${isT?'<span class="tag">今天</span>':''}${d.ready?'':'<span class="tag soon">說明整理中</span>'}
+    <div class="nm">${esc(d.name)}</div>
+    <div class="bar"><i class="o" style="width:${s.o/s.t*100}%"></i><i class="n" style="width:${s.n/s.t*100}%"></i></div>
+    <div class="meta"><span>${s.o+s.n} / ${s.t} 題</span><span>答錯 ${s.n}</span></div></button>`;
+  });
+  const d7=new Date(START.getTime()+6*864e5);
+  html+=`<div class="day${tn===7?' today':''}"><b>第 7 天</b> <span class="mute">${d7.getMonth()+1}/${d7.getDate()}</span>${tn===7?'<span class="tag">今天</span>':''}<div class="nm">總複習：先清錯題本，再做 2 回全套模擬考（每回都要過 140 分）</div>
+  <div class="grid2"><button class="btn sub" data-act="wrong">清錯題本</button><button class="btn sub" data-act="mockmenu">模擬考</button></div></div>`;
+  if(P.mocks.length){
+    html+=`<div class="card"><b>模擬考紀錄</b><ul class="list">`+P.mocks.slice(-6).reverse().map(m=>{const dt=new Date(m.t);return `<li>${dt.getMonth()+1}/${dt.getDate()} ${m.kind}：${m.parts.map(x=>`${x.s} ${x.score}分`).join('、')}　<b class="${m.pass?'pass':'fail'}">${m.pass?'及格':'未過'}</b></li>`}).join('')+`</ul></div>`;
+  }
+  html+=`<p class="mute">及格標準：兩科合計 140 分以上，而且每科都不能低於 60 分。法規 50 題（每題 2 分、60 分鐘），實務 80 題（每題 1.25 分、90 分鐘）。題目來自第 50–59 期歷屆試題；說明為重新撰寫，法規以當期試題答案為準，若有修法請以最新法規為準。</p>`;
+  app.innerHTML=html;window.scrollTo(0,0);
+}
+
+/* ---------- 每日刷題 ---------- */
+function startDay(n,mode){
+  const d=DATA.days[n-1];
+  let seq=[];d.groups.forEach((g,gi)=>g.q.forEach(id=>seq.push({id,gi})));
+  if(mode==='todo')seq=seq.filter(x=>!P.r[x.id]||P.r[x.id].l!==1);
+  if(!seq.length){toast('這一天的題目都答對了！');return}
+  view={name:'study',day:n,seq,i:mode==='todo'?0:Math.min(P.pos[n]||0,seq.length-1),mode,shownIntro:new Set(),ans:null};
+  renderStudy();
+}
+function dayMenu(n){
+  const d=DATA.days[n-1],s=dayStats(d);
+  view={name:'daymenu',day:n};
+  app.innerHTML=`<button class="back" data-act="home">‹ 回首頁</button>
+  <div class="card intro"><h2>第 ${n} 天</h2><p>${esc(d.name)}</p>
+  <div class="bar"><i class="o" style="width:${s.o/s.t*100}%"></i><i class="n" style="width:${s.n/s.t*100}%"></i></div>
+  <div class="meta"><span>已作答 ${s.o+s.n} / ${s.t}</span><span>${d.groups.length} 個觀念</span></div></div>
+  <button class="btn wide" data-act="go" data-mode="all" style="margin-bottom:10px">${P.pos[n]?'接續上次進度':'從頭開始'}</button>
+  <button class="btn sub wide" data-act="go" data-mode="todo" style="margin-bottom:10px">只做還沒答對的題目</button>
+  ${P.pos[n]?'<button class="btn sub wide" data-act="restart">重新從第 1 題開始</button>':''}
+  <div class="card" style="margin-top:14px"><b>這一天的觀念</b><ul class="list">${d.groups.map(g=>`<li>${esc(g.t)} <span class="mute">（${g.q.length} 題）</span></li>`).join('')}</ul></div>`;
+  window.scrollTo(0,0);
+}
+function renderStudy(){
+  const v=view,d=DATA.days[v.day-1],cur=v.seq[v.i],g=d.groups[cur.gi],q=Q[cur.id];
+  const first=v.i===0||v.seq[v.i-1].gi!==cur.gi;
+  if(v.review||(first&&g.i&&!v.shownIntro.has(cur.gi))){
+    app.innerHTML=`<div class="qhead"><button class="back" data-act="dayback">‹ 第 ${v.day} 天</button><span>${v.i+1} / ${v.seq.length}</span></div>
+    <div class="card intro"><div class="gt">觀念 ${cur.gi+1} / ${d.groups.length}</div><h2>${esc(g.t)}</h2><p>${esc(g.i)}</p><div class="mute">這個觀念共 ${g.q.length} 題</div></div>
+    <button class="btn wide" data-act="intro-ok">${v.review?'回到題目':'開始做題'}</button>`;
+    window.scrollTo(0,0);return;
+  }
+  v.ans=null;
+  app.innerHTML=`<div class="qhead"><button class="back" data-act="dayback">‹ 第 ${v.day} 天</button><span>${v.i+1} / ${v.seq.length}</span></div>
+  ${g.i?'<button class="cbtn" data-act="concept">回看觀念：'+esc(g.t)+'</button>':''}
+  <div class="card"><p class="stem">${esc(q.q)}</p>
+  ${q.o.map((o,k)=>`<button class="opt" data-opt="${'ABCD'[k]}"><span class="k">${'ABCD'[k]}</span><span>${esc(o)}</span></button>`).join('')}
+  <div id="after"></div><div class="src">${srcText(q)}</div></div>
+  <div class="row" style="justify-content:space-between"><button class="btn sub" data-act="prev" ${v.i?'':'disabled'}>上一題</button><button class="btn" data-act="next">${v.i===v.seq.length-1?'完成':'下一題'}</button></div>`;
+  window.scrollTo(0,0);
+}
+function answer(letter){
+  const v=view;if(v.ans)return;
+  const id=v.name==='study'?v.seq[v.i].id:v.list[v.i];const q=Q[id];
+  const ok=q.a.includes(letter);v.ans=letter;record(id,ok);
+  document.querySelectorAll('.opt').forEach(b=>{const k=b.dataset.opt;b.disabled=true;if(q.a.includes(k))b.classList.add('ok');else if(k===letter)b.classList.add('ng')});
+  $('#after').innerHTML=explainHtml(q,ok);
+  $('#after').scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function next(){
+  const v=view;
+  if(v.name==='study'){
+    if(v.i>=v.seq.length-1){if(v.mode==='all')P.pos[v.day]=0;save();doneDay();return}
+    v.i++;if(v.mode==='all'){P.pos[v.day]=v.i;save()}renderStudy();
+  }else if(v.name==='wrong'){
+    if(v.i>=v.list.length-1){toast('錯題本這一輪做完了');home();return}
+    v.i++;renderWrong();
+  }
+}
+function doneDay(){
+  const d=DATA.days[view.day-1],s=dayStats(d);
+  app.innerHTML=`<div class="card res"><div class="mute">第 ${view.day} 天完成</div><div class="big ${s.o/s.t>=.7?'pass':'fail'}">${Math.round(s.o/s.t*100)}%</div><p>答對 ${s.o} 題、答錯 ${s.n} 題</p></div>
+  <button class="btn wide" data-act="go" data-mode="todo" style="margin-bottom:10px">把答錯的再做一次</button>
+  <button class="btn sub wide" data-act="home">回首頁</button>`;
+  view.name='daymenu';
+}
+
+/* ---------- 錯題本 ---------- */
+function startWrong(){
+  if(!P.w.length){toast('錯題本是空的');return}
+  view={name:'wrong',list:[...P.w],i:0,ans:null};renderWrong();
+}
+function explainHtml(q,ok){
+  const ansTxt=q.a.length>1?(q.a==='ABCD'?'本題送分（每個答案都算對）':`${q.a.split('').join('或')}都算對`):`答案 ${q.a}`;
+  return `<div class="exp ${ok?'ok':'ng'}"><b>${ok?'答對了':'答錯了'}・${ansTxt}</b>${q.e?esc(q.e):'<span class="mute">這題的白話說明還在整理中，先記住答案。</span>'}</div>`;
+}
+function restoreKept(){
+  const v=view,letter=v.keep;v.keep=null;if(!letter)return;
+  const id=v.name==='study'?v.seq[v.i].id:v.list[v.i],q=Q[id];v.ans=letter;
+  document.querySelectorAll('.opt').forEach(b=>{const k=b.dataset.opt;b.disabled=true;if(q.a.includes(k))b.classList.add('ok');else if(k===letter)b.classList.add('ng')});
+  $('#after').innerHTML=explainHtml(q,q.a.includes(letter));
+}
+function groupOf(id){for(const d of DATA.days)for(const g of d.groups)if(g.q.includes(id))return g;return null}
+function renderWConcept(){const id=view.list[view.i],g=groupOf(id);
+  app.innerHTML=`<div class="qhead"><button class="back" data-act="home">‹ 回首頁</button><span>錯題 ${view.i+1} / ${view.list.length}</span></div>
+  <div class="card intro"><h2>${esc(g.t)}</h2><p>${esc(g.i)}</p></div><button class="btn wide" data-act="wback">回到題目</button>`;window.scrollTo(0,0)}
+function renderWrong(){
+  const v=view,id=v.list[v.i],q=Q[id];v.ans=null;
+  app.innerHTML=`<div class="qhead"><button class="back" data-act="home">‹ 回首頁</button><span>錯題 ${v.i+1} / ${v.list.length}</span></div>
+  ${groupOf(id)&&groupOf(id).i?'<button class="cbtn" data-act="wconcept">回看觀念：'+esc(groupOf(id).t)+'</button>':''}
+  <div class="card"><p class="stem">${esc(q.q)}</p>
+  ${q.o.map((o,k)=>`<button class="opt" data-opt="${'ABCD'[k]}"><span class="k">${'ABCD'[k]}</span><span>${esc(o)}</span></button>`).join('')}
+  <div id="after"></div><div class="src">${srcText(q)}・答錯 ${P.r[id]?.n||0} 次</div></div>
+  <button class="btn wide" data-act="next">${v.i===v.list.length-1?'完成':'下一題'}</button>
+  <p class="mute">答對就會從錯題本移除。</p>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- 模擬考 ---------- */
+const SPEC={法規:{n:50,pt:2,min:60},實務:{n:80,pt:1.25,min:90}};
+function mockMenu(){
+  view={name:'mockmenu'};
+  app.innerHTML=`<button class="back" data-act="home">‹ 回首頁</button>
+  <div class="card intro"><h2>模擬考</h2><p>從 1,300 題裡隨機抽題，照正式考試題數與時間。交卷後才看答案，答錯的會自動放進錯題本。</p></div>
+  <button class="btn wide" data-act="mock" data-kind="全套" style="margin-bottom:10px">全套（法規 50 題＋實務 80 題，150 分鐘）</button>
+  <div class="grid2"><button class="btn sub" data-act="mock" data-kind="法規">只考法規（60 分鐘）</button><button class="btn sub" data-act="mock" data-kind="實務">只考實務（90 分鐘）</button></div>`;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function startMock(kind){
+  const subs=kind==='全套'?['法規','實務']:[kind];
+  const list=[];subs.forEach(s=>{const pool=shuffle(Object.values(Q).filter(q=>q.s===s)).slice(0,SPEC[s].n);pool.forEach(q=>list.push(q.id))});
+  const mins=subs.reduce((t,s)=>t+SPEC[s].min,0);
+  view={name:'mock',kind,subs,list,i:0,pick:{},end:Date.now()+mins*6e4};
+  renderMock();clearInterval(window._mt);window._mt=setInterval(tick,1000);
+}
+function tick(){
+  if(view.name!=='mock'){clearInterval(window._mt);return}
+  const left=Math.max(0,view.end-Date.now());const e=$('#timer');
+  if(e)e.textContent=`${Math.floor(left/6e4)}:${String(Math.floor(left/1e3)%60).padStart(2,'0')}`;
+  if(!left){clearInterval(window._mt);toast('時間到，自動交卷');finishMock()}
+}
+function renderMock(){
+  const v=view,id=v.list[v.i],q=Q[id],pk=v.pick[id];
+  const answered=Object.keys(v.pick).length;
+  app.innerHTML=`<div class="qhead"><button class="back" data-act="quitmock">‹ 放棄</button><span>${q.s}・${v.i+1} / ${v.list.length}</span><span class="timer" id="timer"></span></div>
+  <div class="card"><p class="stem">${esc(q.q)}</p>
+  ${q.o.map((o,k)=>{const L='ABCD'[k];return `<button class="opt${pk===L?' ok':''}" data-mopt="${L}"><span class="k">${L}</span><span>${esc(o)}</span></button>`}).join('')}</div>
+  <div class="row" style="justify-content:space-between"><button class="btn sub" data-act="mprev" ${v.i?'':'disabled'}>上一題</button><span class="mute">已答 ${answered}</span><button class="btn" data-act="mnext">${v.i===v.list.length-1?'交卷':'下一題'}</button></div>
+  <div class="dots">${v.list.map((x,j)=>`<i class="${v.pick[x]?'o':''}${j===v.i?' c':''}"></i>`).join('')}</div>`;
+  tick();
+}
+function finishMock(){
+  const v=view;clearInterval(window._mt);
+  const parts=v.subs.map(s=>{const ids=v.list.filter(id=>Q[id].s===s);const ok=ids.filter(id=>v.pick[id]&&Q[id].a.includes(v.pick[id])).length;return {s,ok,n:ids.length,score:+(ok*SPEC[s].pt).toFixed(2)}});
+  v.list.forEach(id=>{if(v.pick[id])record(id,Q[id].a.includes(v.pick[id]));else{record(id,false)}});
+  const each=parts.every(p=>p.score>=60);const total=parts.reduce((t,p)=>t+p.score,0);
+  const pass=v.subs.length===2?(each&&total>=140):(parts[0].score>=70);
+  P.mocks.push({t:Date.now(),kind:v.kind,parts:parts.map(p=>({s:p.s,score:p.score})),pass});save();
+  const wrong=v.list.filter(id=>!(v.pick[id]&&Q[id].a.includes(v.pick[id])));
+  view={name:'mockres',wrong};
+  app.innerHTML=`<div class="card res"><div class="mute">${v.kind}模擬考</div><div class="big ${pass?'pass':'fail'}">${v.subs.length===2?total.toFixed(1):parts[0].score}</div>
+  <p>${parts.map(p=>`${p.s} ${p.score} 分（${p.ok}/${p.n}）`).join('　')}</p><p class="${pass?'pass':'fail'}"><b>${pass?'及格':'未達及格'}</b></p>
+  <p class="mute">${v.subs.length===2?'合計要 140 分以上，每科不低於 60 分':'單科參考線：70 分（兩科平均要 70 才夠 140）'}</p></div>
+  <div class="card"><b>答錯 ${wrong.length} 題</b><ul class="list">${wrong.map(id=>{const q=Q[id];return `<li>${esc(q.q)}<br><span class="pass">答案 ${q.a.length>1?q.a.split('').join('/'):q.a}：${esc(q.a.length===1?q.o['ABCD'.indexOf(q.a)]:'送分或多答案')}</span>${v.pick[id]?`<span class="fail">　你選 ${v.pick[id]}</span>`:'<span class="fail">　未作答</span>'}${q.e?`<br><span class="mute">${esc(q.e)}</span>`:''}</li>`}).join('')}</ul></div>
+  <button class="btn wide" data-act="home">回首頁</button>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- 事件 ---------- */
+app.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.day){dayMenu(+b.dataset.day);return}
+  if(b.dataset.opt){answer(b.dataset.opt);return}
+  if(b.dataset.mopt){view.pick[view.list[view.i]]=b.dataset.mopt;renderMock();return}
+  const a=b.dataset.act;
+  if(a==='home')home();
+  else if(a==='go')startDay(view.day,b.dataset.mode);
+  else if(a==='restart'){P.pos[view.day]=0;save();startDay(view.day,'all')}
+  else if(a==='dayback')dayMenu(view.day);
+  else if(a==='intro-ok'){view.shownIntro.add(view.seq[view.i].gi);view.review=false;renderStudy();restoreKept()}
+  else if(a==='concept'){view.keep=view.ans;view.review=true;renderStudy()}
+  else if(a==='wconcept'){view.keep=view.ans;renderWConcept()}
+  else if(a==='wback'){renderWrong();restoreKept()}
+  else if(a==='next')next();
+  else if(a==='prev'){if(view.i>0){view.i--;view.shownIntro.add(view.seq[view.i].gi);renderStudy()}}
+  else if(a==='wrong')startWrong();
+  else if(a==='mockmenu')mockMenu();
+  else if(a==='mock')startMock(b.dataset.kind);
+  else if(a==='mprev'){if(view.i>0){view.i--;renderMock()}}
+  else if(a==='mnext'){if(view.i<view.list.length-1){view.i++;renderMock()}else confirmSubmit()}
+  else if(a==='submit')finishMock();
+  else if(a==='resume')renderMock();
+  else if(a==='quitmock'){clearInterval(window._mt);home()}
+});
+function confirmSubmit(){
+  const left=view.list.length-Object.keys(view.pick).length;
+  app.innerHTML=`<div class="card res"><p class="stem">確定要交卷嗎？</p><p>${left?`還有 ${left} 題沒作答`:'全部都作答了'}</p>
+  <div class="grid2"><button class="btn sub" data-act="resume">回去檢查</button><button class="btn" data-act="submit">交卷</button></div></div>`;
+}
+app.addEventListener('change',e=>{if(e.target.id==='startd'&&e.target.value){const[y,m,d]=e.target.value.split('-').map(Number);START=new Date(y,m-1,d);try{localStorage.setItem('trust-start',`${y}-${m}-${d}`)}catch(x){}home()}});
+window.addEventListener('pagehide',flush);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
+
+loadLocal();
+fetch('data.json').then(r=>r.json()).then(j=>{DATA=j;j.qs.forEach(q=>Q[q.id]=q);home();initDb()})
+.catch(()=>{app.innerHTML='<div class="card">題庫載入失敗，請重新整理頁面。</div>'});
+}
+</script>
+</body>
+</html>
