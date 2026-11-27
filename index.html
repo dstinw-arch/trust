@@ -76,6 +76,9 @@ button:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 .pass{color:var(--ok)}.fail{color:var(--ng)}
 .list{margin:0;padding:0;list-style:none}
 .list li{border-top:1px solid var(--line);padding:10px 0;font-size:15px}
+.gjump{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:none;padding:12px 2px;min-height:48px;font-size:15px;align-items:center}
+.gjump span:last-child{flex:none;font-size:13px}
+.gjump:hover span:first-child{color:var(--teal2)}
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.on{opacity:.92}
 .sync{font-size:12px;opacity:.85}
@@ -186,12 +189,19 @@ function home(){
 }
 
 /* ---------- 每日刷題 ---------- */
-function startDay(n,mode){
-  const d=DATA.days[n-1];
-  let seq=[];d.groups.forEach((g,gi)=>g.q.forEach(id=>seq.push({id,gi})));
+function daySeq(n){const d=DATA.days[n-1];const seq=[];d.groups.forEach((g,gi)=>g.q.forEach(id=>seq.push({id,gi})));return seq}
+function resumeIndex(n){ // 接續：上次停的位置之後，第一題還沒作答的題目
+  const seq=daySeq(n);const from=Math.min(P.pos[n]||0,seq.length-1);
+  for(let i=from;i<seq.length;i++)if(!P.r[seq[i].id])return i;
+  for(let i=0;i<from;i++)if(!P.r[seq[i].id])return i;
+  return Math.min(from,seq.length-1);
+}
+function startDay(n,mode,at){
+  let seq=daySeq(n);
   if(mode==='todo')seq=seq.filter(x=>!P.r[x.id]||P.r[x.id].l!==1);
   if(!seq.length){toast('這一天的題目都答對了！');return}
-  view={name:'study',day:n,seq,i:mode==='todo'?0:Math.min(P.pos[n]||0,seq.length-1),mode,shownIntro:new Set(),ans:null};
+  const i=mode==='todo'?0:(at!=null?at:resumeIndex(n));
+  view={name:'study',day:n,seq,i:Math.min(i,seq.length-1),mode,shownIntro:new Set(),ans:null};
   renderStudy();
 }
 function dayMenu(n){
@@ -201,10 +211,11 @@ function dayMenu(n){
   <div class="card intro"><h2>第 ${n} 天</h2><p>${esc(d.name)}</p>
   <div class="bar"><i class="o" style="width:${s.o/s.t*100}%"></i><i class="n" style="width:${s.n/s.t*100}%"></i></div>
   <div class="meta"><span>已作答 ${s.o+s.n} / ${s.t}</span><span>${d.groups.length} 個觀念</span></div></div>
-  <button class="btn wide" data-act="go" data-mode="all" style="margin-bottom:10px">${P.pos[n]?'接續上次進度':'從頭開始'}</button>
+  ${(()=>{const any=s.o+s.n>0,ri=resumeIndex(n),seq=daySeq(n),fin=seq.every(x=>P.r[x.id]);
+    return `<button class="btn wide" data-act="go" data-mode="all" style="margin-bottom:10px">${!any?'開始第 1 題':fin?'全部做完了，從第 1 題再複習':`繼續做（第 ${ri+1} 題，${esc(d.groups[seq[ri].gi].t)}）`}</button>`})()}
   <button class="btn sub wide" data-act="go" data-mode="todo" style="margin-bottom:10px">只做還沒答對的題目</button>
-  ${P.pos[n]?'<button class="btn sub wide" data-act="restart">重新從第 1 題開始</button>':''}
-  <div class="card" style="margin-top:14px"><b>這一天的觀念</b><ul class="list">${d.groups.map(g=>`<li>${esc(g.t)} <span class="mute">（${g.q.length} 題）</span></li>`).join('')}</ul></div>`;
+  ${s.o+s.n>0?'<button class="btn sub wide" data-act="restart">從第 1 題重新開始</button>':''}
+  <div class="card" style="margin-top:14px"><b>這一天的觀念</b><p class="mute" style="margin:2px 0 6px">點觀念可以直接跳到那一組題目</p><ul class="list">${(()=>{let at=0;return d.groups.map((g,gi)=>{const done=g.q.filter(id=>P.r[id]).length,ok=g.q.filter(id=>P.r[id]&&P.r[id].l===1).length;const h=`<li style="padding:0"><button class="gjump" data-jump="${at}"><span>${gi+1}. ${esc(g.t)}</span><span class="mute">${done?`${ok}/${g.q.length} 對`:`${g.q.length} 題`} ›</span></button></li>`;at+=g.q.length;return h}).join('')})()}</ul></div>`;
   window.scrollTo(0,0);
 }
 function renderStudy(){
@@ -384,12 +395,13 @@ function finishMock(){
 app.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.day){dayMenu(+b.dataset.day);return}
+  if(b.dataset.jump!=null){startDay(view.day,'all',+b.dataset.jump);return}
   if(b.dataset.opt){answer(b.dataset.opt);return}
   if(b.dataset.mopt){view.pick[view.list[view.i]]=b.dataset.mopt;renderMock();return}
   const a=b.dataset.act;
   if(a==='home')home();
   else if(a==='go')startDay(view.day,b.dataset.mode);
-  else if(a==='restart'){P.pos[view.day]=0;save();startDay(view.day,'all')}
+  else if(a==='restart'){P.pos[view.day]=0;save();startDay(view.day,'all',0)}
   else if(a==='dayback')dayMenu(view.day);
   else if(a==='intro-ok'){view.shownIntro.add(view.seq[view.i].gi);view.review=false;renderStudy();restoreKept()}
   else if(a==='concept'){view.keep=view.ans;view.review=true;renderStudy()}
